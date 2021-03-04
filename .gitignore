@@ -1,0 +1,11 @@
+node_modules
+
+dist/
+
+.vscode
+.env
+
+tmp/*
+!tmp/.KEEP
+
+.DS_Store

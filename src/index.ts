@@ -1,14 +1,25 @@
-import nhp from 'http-proxy';
-import { MIRROR } from './config';
+import axios from 'axios';
+import fastify from 'fastify';
+import { ddnet } from './ddnet';
 
-for (let [site, port] of MIRROR) {
-  console.log(`proxying: "${site} at ${port}"`);
-  nhp
-    .createProxyServer({
-      target: site,
-      xfwd: true,
-      changeOrigin: true,
-      autoRewrite: true,
-    })
-    .listen(port);
-}
+const app = fastify({ logger: true });
+const axiosInstance = axios.create({
+  headers: {
+    'Accept-Encoding': 'gzip, deflate',
+  },
+  decompress: true,
+  timeout: 10000,
+});
+
+ddnet(app, axiosInstance);
+
+// Run the server!
+const start = async () => {
+  try {
+    await app.listen(3000);
+  } catch (err) {
+    app.log.error(err);
+    process.exit(1);
+  }
+};
+start();

@@ -9,6 +9,7 @@ require('dotenv').config();
 
 let store;
 if (process.env.REDIS_URL) {
+  console.log('Using redis cache');
   const client = redis.createClient({
     url: process.env.REDIS_URL,
   });
@@ -52,6 +53,9 @@ app.setErrorHandler(function (error, request, reply) {
     error: 'Internal Server Error',
     message: error.message,
   });
+
+  console.error('Internal error:');
+  console.error(error.stack);
 });
 
 // Run the server!

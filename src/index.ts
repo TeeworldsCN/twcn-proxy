@@ -39,9 +39,11 @@ app.setErrorHandler(function (error, request, reply) {
     let e = error as AxiosError;
 
     if (request.routerPath.startsWith('/ddnet')) {
-      reply.status(e.response.status).send({
-        statusCode: e.response.status,
-        error: cheerio.load(e.response.data)('title').text().replace(' - DDraceNetwork', ''),
+      reply.status(e.response?.status || 500).send({
+        statusCode: e.response?.status || 500,
+        error: e.response?.data
+          ? cheerio.load(e.response.data)('title').text().replace(' - DDraceNetwork', '')
+          : 'Internal Server Error',
         message: e.message,
       });
       return;

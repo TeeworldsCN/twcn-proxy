@@ -1,34 +1,12 @@
 import { Route } from '../types';
-import { DateTime } from 'luxon';
 import cheerio from 'cheerio';
-import { ddnetEncode } from '../utils';
-
-export const toTimestamp = (ddnetTime: string) => {
-  const time = DateTime.fromISO(`${ddnetTime.slice(0, 10)}T${ddnetTime.slice(11, 16)}+0100`);
-  if (time.isValid) return time.toMillis();
-  return 0;
-};
-
-export const toRacetime = (time: string) => {
-  const data = time.split(':').reverse();
-  let factor = 1;
-  let result = 0;
-  for (let part of data) {
-    result += (parseInt(part) || 0) * factor;
-    factor = factor * 60;
-  }
-  return result;
-};
+import { ddnetEncode, toRacetime, toTimestamp } from '../utils';
 
 export const players: Route = (app, axios) => {
   // Rank
   app.get('/ddnet/players', async (request, reply) => {
     const server = (request.query as any).server || '';
-    const response = await axios.get(`/ranks/${server}`, {
-      cache: {
-        maxAge: 2 * 60 * 1000,
-      },
-    });
+    const response = await axios.get(`/ranks/${server}`);
     const $ = cheerio.load(response.data);
 
     const playerTable: [string, number][] = [
@@ -67,6 +45,7 @@ export const players: Route = (app, axios) => {
     reply.send(result);
   });
 
+  // Player
   app.get('/ddnet/players/:player', async (request, reply) => {
     const player: string = (request.params as any).player;
 

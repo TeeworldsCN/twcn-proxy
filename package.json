@@ -5,6 +5,7 @@
     "@types/redis": "^2.8.28"
   },
   "dependencies": {
+    "@types/cheerio": "^0.22.24",
     "axios": "^0.21.1",
     "axios-cache-adapter": "^2.7.3",
     "cheerio": "^1.0.0-rc.5",

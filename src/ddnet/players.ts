@@ -22,7 +22,9 @@ export const toRacetime = (time: string) => {
 export const players: Route = (app, axios) => {
   // Rank
   app.get('/ddnet/players', async (request, reply) => {
-    const response = await axios.get('/ranks', {
+    const server = (request.query as any).server || '';
+
+    const response = await axios.get(`/ranks/${server}`, {
       cache: {
         maxAge: 2 * 60 * 1000,
       },
@@ -45,12 +47,20 @@ export const players: Route = (app, axios) => {
         .eq(index)
         .find('tr')
         .each((index, e) => {
-          result[category].push({
-            rank: index + 1,
-            name: $(`a`, e).text(),
-            points: parseInt($(`.points`, e).text()),
-            server: $(`img`, e).attr('alt'),
-          });
+          if (!server) {
+            result[category].push({
+              rank: index + 1,
+              name: $(`a`, e).text(),
+              points: parseInt($(`.points`, e).text()),
+              server: $(`img`, e).attr('alt'),
+            });
+          } else {
+            result[category].push({
+              rank: index + 1,
+              name: $(`a`, e).text(),
+              points: parseInt($(`.points`, e).text()),
+            });
+          }
         });
     }
 

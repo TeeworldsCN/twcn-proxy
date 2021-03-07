@@ -49,14 +49,14 @@ export const players: Route = (app, axios) => {
         .each((index, e) => {
           if (!server) {
             result[category].push({
-              rank: index + 1,
+              rank: parseInt($(`.rankglobal`, e).text()),
               name: $(`a`, e).text(),
               points: parseInt($(`.points`, e).text()),
               server: $(`img`, e).attr('alt'),
             });
           } else {
             result[category].push({
-              rank: index + 1,
+              rank: parseInt($(`.rankglobal`, e).text()),
               name: $(`a`, e).text(),
               points: parseInt($(`.points`, e).text()),
             });

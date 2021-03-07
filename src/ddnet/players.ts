@@ -42,7 +42,7 @@ export const players: Route = (app, axios) => {
         });
     }
 
-    reply.send(result);
+    return reply.send(result);
   });
 
   // Player
@@ -189,6 +189,6 @@ export const players: Route = (app, axios) => {
     }
 
     result['servers'] = servers;
-    reply.send(result);
+    return reply.send(result);
   });
 };

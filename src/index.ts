@@ -4,6 +4,8 @@ import { ddnet } from './ddnet';
 import cheerio from 'cheerio';
 import { setup, RedisDefaultStore } from 'axios-cache-adapter';
 import redis from 'redis';
+import fastifyStatic from 'fastify-static';
+import path from 'path';
 
 require('dotenv').config();
 
@@ -18,7 +20,12 @@ if (process.env.REDIS_URL) {
   });
 }
 
-const app = fastify({ logger: false, ignoreTrailingSlash: true });
+const app = fastify({ logger: true, ignoreTrailingSlash: true });
+app.register(fastifyStatic, {
+  root: path.resolve(process.env.TWCN_API_STATIC_PATH),
+  prefix: '/static',
+});
+
 const ddnetAxios = setup({
   baseURL: 'https://ddnet.tw',
   headers: {
@@ -35,29 +42,30 @@ const ddnetAxios = setup({
 ddnet(app, ddnetAxios);
 
 app.setErrorHandler(function (error, request, reply) {
-  if ((error as any).isAxiosError) {
+  if (error && (error as any).isAxiosError) {
     let e = error as AxiosError;
 
     if (request.routerPath.startsWith('/ddnet')) {
-      reply.status(e.response?.status || 500).send({
+      return reply.status(e.response?.status || 500).send({
         statusCode: e.response?.status || 500,
-        error: e.response?.data
-          ? cheerio.load(e.response.data)('title').text().replace(' - DDraceNetwork', '')
-          : 'Internal Server Error',
+        error:
+          typeof e.response?.data == 'string'
+            ? cheerio.load(e.response.data)('title').text().replace(' - DDraceNetwork', '')
+            : 'Internal Server Error',
         message: e.message,
       });
       return;
     }
   }
 
-  reply.status(500).send({
+  return reply.status(500).send({
     statusCode: 500,
     error: 'Internal Server Error',
-    message: error.message,
+    message: error?.message,
   });
 
   console.error('Internal error:');
-  console.error(error.stack);
+  if (error?.stack) console.error(error.stack);
 });
 
 // Run the server!

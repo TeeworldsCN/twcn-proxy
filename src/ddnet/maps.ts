@@ -1,6 +1,8 @@
 import { Route } from '../types';
 import cheerio from 'cheerio';
 import { ddnetEncode, toRacetime, toTimestamp } from '../utils';
+import fs, { promises as fsp } from 'fs';
+import path from 'path';
 
 const STARS: { [key: string]: number } = {
   '★✰✰✰✰': 1,
@@ -11,6 +13,32 @@ const STARS: { [key: string]: number } = {
 };
 
 export const maps: Route = (app, axios) => {
+  const downloadFile = async (url: string, path: string): Promise<void> => {
+    const response = await axios.get(url, {
+      responseType: 'stream',
+    });
+    const stream = fs.createWriteStream(path);
+    response.data.pipe(stream);
+
+    return new Promise((resolve, reject) => {
+      response.data.on('end', () => {
+        stream.on('close', () => {
+          resolve();
+        });
+        stream.close();
+      });
+
+      response.data.on('error', () => {
+        stream.on('close', () => {
+          fs.unlink(path, _ => {
+            reject();
+          });
+        });
+        stream.close();
+      });
+    });
+  };
+
   // Map Releases
   app.get('/ddnet/maps', async (request, reply) => {
     const page = parseInt((request.query as any).page) || 1;
@@ -18,8 +46,7 @@ export const maps: Route = (app, axios) => {
     const url = page <= 1 ? `https://ddnet.tw/releases/` : `https://ddnet.tw/releases/${page}/`;
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
-
-    reply.send({
+    return reply.send({
       page,
       totalPages: parseInt($('.longblock h3 a').last().text()) || page,
       maps: $('.blockreleases.release')
@@ -30,11 +57,15 @@ export const maps: Route = (app, axios) => {
           const desc = $('p', e).last();
           const descText = desc.text().match(/Difficulty: (.*), Points: (.*)/);
           const name = span.text();
+          const safeName = $('.screenshot', e)
+            .attr('src')
+            .match(/\/ranks\/maps\/(.*).png/);
           return {
             server: $('h2 a', e).text().split(' ')[0].toLowerCase(),
             // mapWidth: parseInt(mapSize[1]),
             // mapHeight: parseInt(mapSize[2]),
             name: name,
+            safeName: safeName ? safeName[1] : undefined,
             releaseDate: $('h3', e).first().text().slice(0, 10) || 'legacy',
             mapper: $('p strong a', e).text(),
             difficulty: STARS[descText[1]] || 0,
@@ -73,9 +104,7 @@ export const maps: Route = (app, axios) => {
         /(?:Released: ([0-9-]*))?Difficulty: (.*), Points: ([0-9]*)\s*(?:([0-9]*) tees finished \(median time: ([0-9:]*)\))?\s*(?:([0-9]*) teams finished \(biggest team: ([0-9:]*)\))?/
       );
 
-    if (!info) {
-      reply.callNotFound();
-    }
+    if (!info) return reply.callNotFound();
 
     const finishes = infoQuery
       .find('span')
@@ -104,9 +133,14 @@ export const maps: Route = (app, axios) => {
       }
     };
 
-    reply.send({
+    const safeName = infoQuery
+      .find('.screenshot')
+      .attr('src')
+      .match(/\/ranks\/maps\/(.*).png/);
+    return reply.send({
       server: blocks.eq(0).text().split(' ')[0].toLowerCase(),
       name: title[1],
+      safeName: safeName ? safeName[1] : undefined,
       mapper: title[2],
       releaseDate: info[1] || 'legacy',
       difficulty: STARS[info[2]] || 0,
@@ -130,5 +164,30 @@ export const maps: Route = (app, axios) => {
       teamRecords: $('.block2.teamrecords table tr').toArray().map(tableProcessor),
       records: $('.block2.records table tr').toArray().map(tableProcessor),
     });
+  });
+
+  // Map
+  app.get('/ddnet/mapthumbs/:file', async (request, reply) => {
+    const file: string = (request.params as any).file;
+    if (!file.endsWith('.png')) return reply.callNotFound();
+
+    const staticPath = path.resolve(process.env.TWCN_API_STATIC_PATH);
+    const thumbsPath = path.join(staticPath, 'mapthumbs');
+    const filePath = path.join(thumbsPath, file);
+    const relativeFilePath = path.join('mapthumbs', file);
+
+    try {
+      await fsp.access(thumbsPath, fs.constants.R_OK);
+    } catch {
+      await fsp.mkdir(thumbsPath), { recursive: true };
+    }
+
+    try {
+      await fsp.access(filePath, fs.constants.R_OK);
+    } catch {
+      await downloadFile(`https://ddnet.tw/ranks/maps/${encodeURIComponent(file)}`, filePath);
+    }
+
+    return reply.sendFile(relativeFilePath);
   });
 };

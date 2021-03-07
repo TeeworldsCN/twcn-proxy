@@ -11,7 +11,11 @@ export const toTimestamp = (ddnetTime: string) => {
 export const players: Route = (app, axios) => {
   // Rank
   app.get('/ddnet/players', async (request, reply) => {
-    const response = await axios.get('/ranks');
+    const response = await axios.get('/ranks', {
+      cache: {
+        maxAge: 2 * 60 * 1000,
+      },
+    });
     const $ = cheerio.load(response.data);
 
     const playerTable: [string, number][] = [
@@ -125,6 +129,66 @@ export const players: Route = (app, axios) => {
     });
 
     result['favoritePartners'] = favoritePartners;
+
+    const serverTypes = [
+      'Novice',
+      'Moderate',
+      'Brutal',
+      'Insane',
+      'Dummy',
+      'DDmaX',
+      'Oldschool',
+      'Solo',
+      'Race',
+      'Fun',
+    ];
+
+    const servers: any = {};
+
+    for (let serverType of serverTypes) {
+      const server: any = {};
+      const queryRanks = $(`#${serverType} .block2.ladder .pers-result`);
+
+      const categoryTable: [string, number][] = [
+        ['points', 0],
+        ['teamRank', 1],
+        ['rank', 2],
+      ];
+
+      for (let [category, index] of categoryTable) {
+        const data = queryRanks.eq(index).text().split(' ');
+
+        if (data.length == 4) {
+          server[category] = {
+            rank: parseInt(data[0]),
+            points: parseInt(data[2]),
+          };
+        }
+      }
+
+      const queryMaps = $(`#${serverType} table.spacey tbody tr`);
+      const maps: any[] = [];
+
+      queryMaps.each((index, e) => {
+        const cells = $('td', e);
+        const timeData = cells.eq(4).text().split(':');
+        maps.push({
+          name: cells.eq(0).text(),
+          points: parseInt(cells.eq(1).text()),
+          teamRank: parseInt(cells.eq(2).text()) || undefined,
+          rank: parseInt(cells.eq(3).text()) || undefined,
+          time: parseInt(timeData[0]) * 60 + parseInt(timeData[1]),
+          finishes: parseInt(cells.eq(5).text()),
+          firstFinish: toTimestamp(cells.eq(6).text()),
+        });
+      });
+
+      server['finishedMaps'] = maps;
+
+      servers[serverType.toLowerCase()] = server;
+    }
+
+    result['servers'] = servers;
     reply.send(result);
   });
 };

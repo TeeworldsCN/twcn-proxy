@@ -1,6 +1,7 @@
 import { Route } from '../types';
 import { DateTime } from 'luxon';
 import cheerio from 'cheerio';
+import { ddnetEncode } from '../utils';
 
 export const toTimestamp = (ddnetTime: string) => {
   const time = DateTime.fromISO(`${ddnetTime.slice(0, 10)}T${ddnetTime.slice(11, 16)}+0100`);
@@ -23,7 +24,6 @@ export const players: Route = (app, axios) => {
   // Rank
   app.get('/ddnet/players', async (request, reply) => {
     const server = (request.query as any).server || '';
-
     const response = await axios.get(`/ranks/${server}`, {
       cache: {
         maxAge: 2 * 60 * 1000,
@@ -69,7 +69,8 @@ export const players: Route = (app, axios) => {
 
   app.get('/ddnet/players/:player', async (request, reply) => {
     const player: string = (request.params as any).player;
-    const playerQuery = encodeURIComponent(player.replace(/-/g, '-45-'));
+
+    const playerQuery = ddnetEncode(player);
 
     const response = await axios.get(`/players/${playerQuery}`);
 

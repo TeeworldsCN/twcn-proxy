@@ -18,7 +18,7 @@ if (process.env.REDIS_URL) {
   });
 }
 
-const app = fastify({ logger: false });
+const app = fastify({ logger: false, ignoreTrailingSlash: true });
 const ddnetAxios = setup({
   baseURL: 'https://ddnet.tw',
   headers: {

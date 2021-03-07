@@ -8,6 +8,17 @@ export const toTimestamp = (ddnetTime: string) => {
   return 0;
 };
 
+export const toRacetime = (time: string) => {
+  const data = time.split(':').reverse();
+  let factor = 1;
+  let result = 0;
+  for (let part of data) {
+    result += (parseInt(part) || 0) * factor;
+    factor = factor * 60;
+  }
+  return result;
+};
+
 export const players: Route = (app, axios) => {
   // Rank
   app.get('/ddnet/players', async (request, reply) => {
@@ -82,13 +93,13 @@ export const players: Route = (app, axios) => {
 
     const queryFirstFinish = $(`#global .block2.ladder .personal-result`)
       .text()
-      .match(/([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}): (.*) \((.*):(.*)\)/);
+      .match(/([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}): (.*) \((.*)\)/);
 
     if (queryFirstFinish) {
       result.firstFinish = {
         timestamp: toTimestamp(queryFirstFinish[1]),
         map: queryFirstFinish[2],
-        time: parseInt(queryFirstFinish[3]) * 60 + parseInt(queryFirstFinish[4]),
+        time: toRacetime(queryFirstFinish[3]),
       };
     }
 
@@ -100,13 +111,13 @@ export const players: Route = (app, axios) => {
     queryLastFinishes.each((index, e) => {
       const queryLine = $(e)
         .text()
-        .match(/([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}):  ([^:]*): (.*) \((.*):(.*)\)/);
+        .match(/([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}):  ([^:]*): (.*) \((.*)\)/);
 
       lastFinishes.push({
         timestamp: toTimestamp(queryLine[1]),
         type: queryLine[2],
         map: queryLine[3],
-        time: parseInt(queryLine[4]) * 60 + parseInt(queryLine[5]),
+        time: toRacetime(queryLine[4]),
         server: $('img', e).attr('alt'),
       });
     });
@@ -171,13 +182,12 @@ export const players: Route = (app, axios) => {
 
       queryMaps.each((index, e) => {
         const cells = $('td', e);
-        const timeData = cells.eq(4).text().split(':');
         maps.push({
           name: cells.eq(0).text(),
           points: parseInt(cells.eq(1).text()),
           teamRank: parseInt(cells.eq(2).text()) || undefined,
           rank: parseInt(cells.eq(3).text()) || undefined,
-          time: parseInt(timeData[0]) * 60 + parseInt(timeData[1]),
+          time: toRacetime(cells.eq(4).text()),
           finishes: parseInt(cells.eq(5).text()),
           firstFinish: toTimestamp(cells.eq(6).text()),
         });

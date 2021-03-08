@@ -12,7 +12,7 @@ const STARS: { [key: string]: number } = {
   '★★★★★': 5,
 };
 
-export const maps: Route = (app, axios) => {
+export const maps: Route = (app, axios, db) => {
   const downloadFile = async (url: string, path: string): Promise<void> => {
     const response = await axios.get(url, {
       responseType: 'stream',
@@ -189,5 +189,42 @@ export const maps: Route = (app, axios) => {
     }
 
     return reply.sendFile(relativeFilePath);
+  });
+
+  // MapData
+  app.get('/ddnet/mapdata/:file', async (request, reply) => {
+    const file: string = (request.params as any).file;
+    if (!file.endsWith('.map')) return reply.callNotFound();
+
+    const forceRefresh = (request.query as any).refresh == 'true';
+    const staticPath = path.resolve(process.env.TWCN_API_STATIC_PATH);
+    const thumbsPath = path.join(staticPath, 'mapdata');
+    const filePath = path.join(thumbsPath, file);
+    const relativeFilePath = path.join('mapdata', file);
+    const fileName = path.basename(file, '.map');
+
+    try {
+      await fsp.access(thumbsPath, fs.constants.R_OK);
+    } catch {
+      await fsp.mkdir(thumbsPath), { recursive: true };
+    }
+
+    const cached = await db.get(`mapdata_${fileName}`);
+
+    if (forceRefresh && !cached) {
+      await downloadFile(`https://ddnet.tw/mappreview/${encodeURIComponent(file)}`, filePath);
+      db.psetex(`mapdata_${fileName}`, 86400000, true);
+    } else {
+      try {
+        await fsp.access(filePath, fs.constants.R_OK);
+      } catch {
+        await downloadFile(`https://ddnet.tw/mappreview/${encodeURIComponent(file)}`, filePath);
+        db.psetex(`mapdata_${fileName}`, 86400000, true);
+      }
+    }
+
+    return reply.download(relativeFilePath, {
+      maxAge: 86400000,
+    });
   });
 };

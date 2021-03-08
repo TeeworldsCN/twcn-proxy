@@ -6,21 +6,31 @@ import { setup, RedisDefaultStore } from 'axios-cache-adapter';
 import redis from 'redis';
 import fastifyStatic from 'fastify-static';
 import path from 'path';
+import { promisify } from 'util';
 
 require('dotenv').config();
 
 let store;
+const redisClient = redis.createClient({
+  url: process.env.REDIS_URL,
+});
+
 if (process.env.REDIS_URL) {
   console.log('Using redis cache');
-  const client = redis.createClient({
-    url: process.env.REDIS_URL,
-  });
-  store = new RedisDefaultStore(client, {
+  store = new RedisDefaultStore(redisClient, {
     prefix: 'api',
   });
 }
 
-const app = fastify({ logger: true, ignoreTrailingSlash: true });
+export type RedisDBP = typeof db;
+
+const db = {
+  get: promisify(redisClient.get).bind(redisClient),
+  set: promisify(redisClient.set).bind(redisClient),
+  psetex: promisify(redisClient.psetex).bind(redisClient),
+};
+
+const app = fastify({ logger: false, ignoreTrailingSlash: true });
 app.register(fastifyStatic, {
   root: path.resolve(process.env.TWCN_API_STATIC_PATH),
   prefix: '/static',
@@ -39,7 +49,7 @@ const ddnetAxios = setup({
   },
 });
 
-ddnet(app, ddnetAxios);
+ddnet(app, ddnetAxios, db);
 
 app.setErrorHandler(function (error, request, reply) {
   if (error && (error as any).isAxiosError) {

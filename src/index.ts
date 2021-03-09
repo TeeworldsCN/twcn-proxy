@@ -64,18 +64,17 @@ app.setErrorHandler(function (error, request, reply) {
             : 'Internal Server Error',
         message: e.message,
       });
-      return;
     }
   }
+
+  console.error('Internal error:');
+  if (error?.stack) console.error(error.stack);
 
   return reply.status(500).send({
     statusCode: 500,
     error: 'Internal Server Error',
     message: error?.message,
   });
-
-  console.error('Internal error:');
-  if (error?.stack) console.error(error.stack);
 });
 
 // Run the server!

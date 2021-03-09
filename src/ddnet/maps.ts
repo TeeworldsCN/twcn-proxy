@@ -3,6 +3,7 @@ import cheerio from 'cheerio';
 import { ddnetEncode, toRacetime, toTimestamp } from '../utils';
 import fs, { promises as fsp } from 'fs';
 import path from 'path';
+import sharp from 'sharp';
 
 const STARS: { [key: string]: number } = {
   '★✰✰✰✰': 1,
@@ -86,7 +87,10 @@ export const maps: Route = (app, axios, db) => {
   // Map
   app.get('/ddnet/maps/:map', async (request, reply) => {
     const map: string = (request.params as any).map;
-    const url = `https://ddnet.tw/maps/${ddnetEncode(map)}/`;
+    const server = (request.query as any).server;
+    const url = server
+      ? `https://ddnet.tw/maps/${server}/${ddnetEncode(map)}/`
+      : `https://ddnet.tw/maps/${ddnetEncode(map)}/`;
     const response = await axios.get(url);
 
     const $ = cheerio.load(response.data);
@@ -166,9 +170,11 @@ export const maps: Route = (app, axios, db) => {
     });
   });
 
-  // Map
+  // Map thumbnails
   app.get('/ddnet/mapthumbs/:file', async (request, reply) => {
     const file: string = (request.params as any).file;
+    const isSquare: boolean = (request.query as any).square == 'true';
+
     if (!file.endsWith('.png')) return reply.callNotFound();
 
     const staticPath = path.resolve(process.env.TWCN_API_STATIC_PATH);
@@ -188,7 +194,25 @@ export const maps: Route = (app, axios, db) => {
       await downloadFile(`https://ddnet.tw/ranks/maps/${encodeURIComponent(file)}`, filePath);
     }
 
-    return reply.sendFile(relativeFilePath);
+    if (!isSquare) {
+      return reply.sendFile(relativeFilePath);
+    } else {
+      const iconPath = path.join(thumbsPath, 'square');
+      try {
+        await fsp.access(iconPath, fs.constants.R_OK);
+      } catch {
+        await fsp.mkdir(iconPath), { recursive: true };
+      }
+
+      const squarePath = path.join(iconPath, file);
+      const relativeSquarePath = path.join('mapthumbs', 'square', file);
+      try {
+        await fsp.access(squarePath, fs.constants.R_OK);
+      } catch {
+        await fsp.writeFile(squarePath, await sharp(filePath).resize(200, 200).png().toBuffer());
+      }
+      return reply.sendFile(relativeSquarePath);
+    }
   });
 
   // MapData

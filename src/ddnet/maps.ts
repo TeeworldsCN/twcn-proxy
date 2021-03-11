@@ -44,7 +44,7 @@ export const maps: Route = (app, axios, db) => {
   app.get('/ddnet/maps', async (request, reply) => {
     const page = parseInt((request.query as any).page) || 1;
 
-    const url = page <= 1 ? `https://ddnet.tw/releases/` : `https://ddnet.tw/releases/${page}/`;
+    const url = page <= 1 ? `/releases/` : `/releases/${page}/`;
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
     return reply.send({
@@ -88,9 +88,7 @@ export const maps: Route = (app, axios, db) => {
   app.get('/ddnet/maps/:map', async (request, reply) => {
     const map: string = (request.params as any).map;
     const server = (request.query as any).server;
-    const url = server
-      ? `https://ddnet.tw/maps/${server}/${ddnetEncode(map)}/`
-      : `https://ddnet.tw/maps/${ddnetEncode(map)}/`;
+    const url = server ? `/maps/${server}/${ddnetEncode(map)}/` : `/maps/${ddnetEncode(map)}/`;
     const response = await axios.get(url);
 
     const $ = cheerio.load(response.data);
@@ -197,7 +195,7 @@ export const maps: Route = (app, axios, db) => {
     try {
       await fsp.access(filePath, fs.constants.R_OK);
     } catch {
-      await downloadFile(`https://ddnet.tw/ranks/maps/${encodeURIComponent(file)}`, filePath);
+      await downloadFile(`/maps/${encodeURIComponent(file)}`, filePath);
     }
 
     if (!isSquare) {
@@ -242,13 +240,13 @@ export const maps: Route = (app, axios, db) => {
     const cached = await db.get(`mapdata_${fileName}`);
 
     if (forceRefresh && !cached) {
-      await downloadFile(`https://ddnet.tw/mappreview/${encodeURIComponent(file)}`, filePath);
+      await downloadFile(`/mappreview/${encodeURIComponent(file)}`, filePath);
       db.psetex(`mapdata_${fileName}`, 86400000, true);
     } else {
       try {
         await fsp.access(filePath, fs.constants.R_OK);
       } catch {
-        await downloadFile(`https://ddnet.tw/mappreview/${encodeURIComponent(file)}`, filePath);
+        await downloadFile(`/mappreview/${encodeURIComponent(file)}`, filePath);
         db.psetex(`mapdata_${fileName}`, 86400000, true);
       }
     }

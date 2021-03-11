@@ -45,6 +45,7 @@ const ddnetAxios = setup({
   timeout: 10000,
   cache: {
     maxAge: 10 * 60 * 1000,
+    exclude: { query: false },
     store,
   },
 });

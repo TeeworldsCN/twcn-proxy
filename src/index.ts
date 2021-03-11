@@ -80,7 +80,7 @@ app.setErrorHandler(function (error, request, reply) {
 // Run the server!
 const start = async () => {
   try {
-    await app.listen(3000);
+    await app.listen(3000, '0.0.0.0');
   } catch (err) {
     app.log.error(err);
     process.exit(1);

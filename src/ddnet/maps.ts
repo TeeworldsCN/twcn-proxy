@@ -102,19 +102,25 @@ export const maps: Route = (app, axios, db) => {
       .match(/(.*) by (.*)/);
 
     const infoQuery = $('.block2.info p');
-    const info = infoQuery
-      .text()
-      .match(
-        /(?:Released: ([0-9-]*))?Difficulty: (.*), Points: ([0-9]*)\s*(?:([0-9]*) tees finished \(median time: ([0-9:]*)\))?\s*(?:([0-9]*) teams finished \(biggest team: ([0-9:]*)\))?/
-      );
 
-    if (!info) return reply.callNotFound();
+    if (!infoQuery.text()) return reply.callNotFound();
+    const lineBreak = infoQuery.find('br').get(0);
 
-    const finishes = infoQuery
-      .find('span')
-      .last()
-      .attr('title')
-      .match(/first finish: (.*), last finish: (.*), total finishes: (.*)/);
+    const diffPoints =
+      (lineBreak?.nextSibling?.data || '').match(/Difficulty: (.*), Points: ([0-9]*)/) || [];
+    const releaseDate =
+      (lineBreak?.previousSibling?.data || '').match(/(?:Released: ([0-9-]*))/) || [];
+    const finishesQuery = infoQuery.find('span').last();
+    const teeFinishes =
+      finishesQuery.text().match(/([0-9]*) tees? finished\s\(median time: ([0-9:]*)\)/) || [];
+    const finishes =
+      finishesQuery
+        .attr('title')
+        .match(/first finish: (.*), last finish: (.*), total finishes: (.*)/) || [];
+    const teamFinishes =
+      (finishesQuery.get(0)?.nextSibling?.nextSibling?.data || '').match(
+        /([0-9]*) teams? finished\s\(biggest team: ([0-9:]*)\)/
+      ) || [];
 
     const tableProcessor = (e: cheerio.Element) => {
       const players = $('a', e)
@@ -146,9 +152,9 @@ export const maps: Route = (app, axios, db) => {
       name: title[1],
       safeName: safeName ? safeName[1] : undefined,
       mapper: title[2],
-      releaseDate: info[1] || 'legacy',
-      difficulty: STARS[info[2]] || 0,
-      points: parseInt(info[3]) || 0,
+      releaseDate: releaseDate[1] || 'legacy',
+      difficulty: STARS[diffPoints[1]] || 0,
+      points: parseInt(diffPoints[2]) || 0,
       tiles: infoQuery
         .find('span a')
         .toArray()
@@ -158,10 +164,10 @@ export const maps: Route = (app, axios, db) => {
               .attr('href')
               .match(/\/tiles\/(.*)\//)[1]
         ),
-      teesFinished: parseInt(info[4]) || 0,
-      medianTime: toRacetime(info[5]),
-      teamFinished: parseInt(info[6]) || undefined,
-      biggestTeam: parseInt(info[7]) || undefined,
+      teesFinished: parseInt(teeFinishes[1]) || 0,
+      medianTime: toRacetime(teeFinishes[2]) || undefined,
+      teamFinished: parseInt(teamFinishes[1]) || undefined,
+      biggestTeam: parseInt(teamFinishes[2]) || undefined,
       firstFinish: finishes[1] ? toTimestamp(finishes[1]) : undefined,
       lastFinish: finishes[2] ? toTimestamp(finishes[2]) : undefined,
       totalFinishes: parseInt(finishes[3]) || undefined,

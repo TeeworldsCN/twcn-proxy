@@ -195,7 +195,7 @@ export const maps: Route = (app, axios, db) => {
     try {
       await fsp.access(filePath, fs.constants.R_OK);
     } catch {
-      await downloadFile(`/maps/${encodeURIComponent(file)}`, filePath);
+      await downloadFile(`/ranks/maps/${encodeURIComponent(file)}`, filePath);
     }
 
     if (!isSquare) {

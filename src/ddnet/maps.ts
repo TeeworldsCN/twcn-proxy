@@ -105,7 +105,9 @@ export const maps: Route = (app, axios, db) => {
     const lineBreak = infoQuery.find('br').get(0);
 
     const diffPoints =
-      (lineBreak?.nextSibling?.data || '').match(/Difficulty: (.*), Points: ([0-9]*)/) || [];
+      (lineBreak?.nextSibling?.data || '').match(/Difficulty: (.*), Points: ([0-9]*)/) ||
+      (lineBreak?.previousSibling?.data || '').match(/Difficulty: (.*), Points: ([0-9]*)/) ||
+      [];
     const releaseDate =
       (lineBreak?.previousSibling?.data || '').match(/(?:Released: ([0-9-]*))/) || [];
     const finishesQuery = infoQuery.find('span').last();

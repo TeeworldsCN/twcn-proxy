@@ -81,7 +81,7 @@ app.setErrorHandler(function (error, request, reply) {
 // Run the server!
 const start = async () => {
   try {
-    await app.listen(3000, '0.0.0.0');
+    await app.listen(process.env.PORT, 'localhost');
   } catch (err) {
     app.log.error(err);
     process.exit(1);

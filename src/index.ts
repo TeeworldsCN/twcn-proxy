@@ -11,9 +11,12 @@ import { promisify } from 'util';
 require('dotenv').config();
 
 let store;
-const redisClient = redis.createClient({
-  url: process.env.REDIS_URL,
-});
+
+const redisClient = process.env.REDIS_URL
+  ? redis.createClient({
+      url: process.env.REDIS_URL,
+    })
+  : null;
 
 if (process.env.REDIS_URL) {
   console.log('Using redis cache');
@@ -25,9 +28,9 @@ if (process.env.REDIS_URL) {
 export type RedisDBP = typeof db;
 
 const db = {
-  get: promisify(redisClient.get).bind(redisClient),
-  set: promisify(redisClient.set).bind(redisClient),
-  psetex: promisify(redisClient.psetex).bind(redisClient),
+  get: !redisClient ? async () => null as any : promisify(redisClient.get).bind(redisClient),
+  set: !redisClient ? async () => null as any : promisify(redisClient.set).bind(redisClient),
+  psetex: !redisClient ? async () => null as any : promisify(redisClient.psetex).bind(redisClient),
 };
 
 const app = fastify({ logger: false, ignoreTrailingSlash: true });

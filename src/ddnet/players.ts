@@ -60,6 +60,7 @@ export const players: Route = (app, axios) => {
       if (!response.data.player) {
         return reply.status(404).send({ error: 'Player not found' });
       }
+      return reply.send(response.data);
     } catch (e) {
       const err = e as AxiosError;
       return reply.status(err?.response?.status || 500).send({ error: 'Internal Server Error' });

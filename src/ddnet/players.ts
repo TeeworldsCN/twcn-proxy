@@ -1,6 +1,7 @@
 import { Route } from '../types';
 import cheerio from 'cheerio';
 import { ddnetEncode, toRacetime, toTimestamp } from '../utils';
+import { AxiosError } from 'axios';
 
 export const players: Route = (app, axios) => {
   // Rank
@@ -49,11 +50,19 @@ export const players: Route = (app, axios) => {
   app.get('/ddnet/players/:player', async (request, reply) => {
     const player: string = (request.params as any).player;
 
-    const response = await axios.get(`/players`, {
-      params: {
-        json2: player,
-      },
-    });
-    return reply.send(response.data);
+    try {
+      const response = await axios.get(`/players`, {
+        params: {
+          json2: player,
+        },
+      });
+
+      if (!response.data.player) {
+        return reply.status(404).send({ error: 'Player not found' });
+      }
+    } catch (e) {
+      const err = e as AxiosError;
+      return reply.status(err?.response?.status || 500).send({ error: 'Internal Server Error' });
+    }
   });
 };

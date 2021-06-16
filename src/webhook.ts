@@ -2,14 +2,12 @@ import { AxiosError } from 'axios';
 import { Route } from './types';
 
 export const webhook: Route = (app, axios, db) => {
-  app.all('/webhook/*', async (request, reply) => {
-    if ((request.query as any).__twcnt != process.env.TWCN_TOKEN) {
+  app.all('/webhook/:token/*', async (request, reply) => {
+    if ((request.params as any).token != process.env.TWCN_TOKEN) {
       return reply.status(404).send();
     }
 
-    delete (request.query as any).__twcnt;
-
-    const url = request.url.slice(9).split('?')[0];
+    const url = request.url.slice(10 + process.env.TWCN_TOKEN.length).split('?')[0];
     const urlObject = new URL(url);
     const hostName = urlObject.hostname;
     request.headers.host = hostName;

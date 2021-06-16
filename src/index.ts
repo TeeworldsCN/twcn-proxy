@@ -7,6 +7,7 @@ import redis from 'redis';
 import fastifyStatic from 'fastify-static';
 import path from 'path';
 import { promisify } from 'util';
+import { webhook } from './webhook';
 
 require('dotenv').config();
 
@@ -54,6 +55,7 @@ const ddnetAxios = setup({
 });
 
 ddnet(app, ddnetAxios, db);
+webhook(app, ddnetAxios, db);
 
 app.setErrorHandler(function (error, request, reply) {
   if (error && (error as any).isAxiosError) {

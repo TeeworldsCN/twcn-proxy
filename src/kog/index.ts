@@ -1,12 +1,10 @@
 import { setup } from 'axios-cache-adapter';
 import { RouteSetup } from '../types';
-import { maps } from './maps';
 import { players } from './players';
-import { queries } from './queries';
 
-export const ddnet: RouteSetup = (app, store, db) => {
+export const kog: RouteSetup = (app, store, db) => {
   const axios = setup({
-    baseURL: 'https://ddnet.tw',
+    baseURL: 'https://kog.tw',
     headers: {
       'Accept-Encoding': 'gzip, deflate',
     },
@@ -20,6 +18,4 @@ export const ddnet: RouteSetup = (app, store, db) => {
   });
 
   players(app, axios, db);
-  maps(app, axios, db);
-  queries(app, axios, db);
 };

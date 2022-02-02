@@ -1,7 +1,21 @@
 import { AxiosError } from 'axios';
-import { Route } from './types';
+import { setup } from 'axios-cache-adapter';
+import { RouteSetup } from './types';
 
-export const webhook: Route = (app, axios, db) => {
+export const webhook: RouteSetup = (app, store, db) => {
+  const axios = setup({
+    headers: {
+      'Accept-Encoding': 'gzip, deflate',
+    },
+    decompress: true,
+    timeout: 10000,
+    cache: {
+      maxAge: 10 * 60 * 1000,
+      exclude: { query: false },
+      store,
+    },
+  });
+
   app.all('/webhook/:token/*', async (request, reply) => {
     if ((request.params as any).token != process.env.TWCN_TOKEN) {
       return reply.status(404).send();

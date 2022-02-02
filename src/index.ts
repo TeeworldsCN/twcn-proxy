@@ -2,16 +2,17 @@ import { AxiosError } from 'axios';
 import fastify from 'fastify';
 import { ddnet } from './ddnet';
 import cheerio from 'cheerio';
-import { setup, RedisDefaultStore } from 'axios-cache-adapter';
+import { RedisDefaultStore } from 'axios-cache-adapter';
 import redis from 'redis';
 import fastifyStatic from 'fastify-static';
 import path from 'path';
 import { promisify } from 'util';
 import { webhook } from './webhook';
+import { kog } from './kog';
 
 require('dotenv').config();
 
-let store;
+let store: RedisDefaultStore = null;
 
 const redisClient = process.env.REDIS_URL
   ? redis.createClient({
@@ -36,26 +37,13 @@ const db = {
 
 const app = fastify({ logger: false, ignoreTrailingSlash: true });
 app.register(fastifyStatic, {
-  root: path.resolve(process.env.TWCN_API_STATIC_PATH),
+  root: path.resolve(process.env.TWCN_API_STATIC_PATH ?? 'static'),
   prefix: '/static',
 });
 
-const ddnetAxios = setup({
-  baseURL: 'https://ddnet.tw',
-  headers: {
-    'Accept-Encoding': 'gzip, deflate',
-  },
-  decompress: true,
-  timeout: 10000,
-  cache: {
-    maxAge: 10 * 60 * 1000,
-    exclude: { query: false },
-    store,
-  },
-});
-
-ddnet(app, ddnetAxios, db);
-webhook(app, ddnetAxios, db);
+ddnet(app, store, db);
+kog(app, store, db);
+webhook(app, store, db);
 
 app.setErrorHandler(function (error, request, reply) {
   if (error && (error as any).isAxiosError) {

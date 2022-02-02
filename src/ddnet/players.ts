@@ -1,6 +1,5 @@
 import { Route } from '../types';
 import cheerio from 'cheerio';
-import { ddnetEncode, toRacetime, toTimestamp } from '../utils';
 import { AxiosError } from 'axios';
 
 export const players: Route = (app, axios) => {
